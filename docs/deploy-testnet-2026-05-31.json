@@ -1,0 +1,180 @@
+[warning] CLI's protocol version is 122, but the active network's protocol version is 125. 
+ Consider installing the latest version of the CLI - https://docs.sui.io/guides/developer/getting-started/sui-install 
+
+ If publishing/upgrading returns a dependency verification error, then install the latest CLI version.
+INCLUDING DEPENDENCY MoveStdlib
+INCLUDING DEPENDENCY Sui
+BUILDING compliance_vault
+{
+  "digest": "4cxESEGZtLT6us6uf3o7SBdiPjBvjxJ1LicF799dqink",
+  "transaction": {
+    "data": {
+      "messageVersion": "v1",
+      "transaction": {
+        "kind": "ProgrammableTransaction",
+        "inputs": [
+          {
+            "type": "pure",
+            "valueType": "address",
+            "value": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c"
+          }
+        ],
+        "transactions": [
+          {
+            "Publish": [
+              "0x0000000000000000000000000000000000000000000000000000000000000001",
+              "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ]
+          },
+          {
+            "TransferObjects": [
+              [
+                {
+                  "Result": 0
+                }
+              ],
+              {
+                "Input": 0
+              }
+            ]
+          }
+        ]
+      },
+      "sender": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c",
+      "gasData": {
+        "payment": [
+          {
+            "objectId": "0x09958ff53f47c1c43316c5ef0954ceb0ac8d5de8baafcc73fc12a5d27da12cb5",
+            "version": 882986249,
+            "digest": "9iCpPjd9BPcnWvGtw7u3JMjuQAsFoiscpwreGZV1iPtN"
+          }
+        ],
+        "owner": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c",
+        "price": "1000",
+        "budget": "500000000"
+      }
+    },
+    "txSignatures": [
+      "ALNVR4SEW+YwSAYhj2SDgFuhfZFPURV8Eq1c1j3nOMt+E9t7IwxKWGMXZpKxl1iJYzxhd1Wq4Z+JpUami7D0PwIFDd+bHCNw/w8XuuBNbKTqdyrg+ozuk6QFBmRYmUjFlg=="
+    ]
+  },
+  "effects": {
+    "messageVersion": "v1",
+    "status": {
+      "status": "success"
+    },
+    "executedEpoch": "1116",
+    "gasUsed": {
+      "computationCost": "1000000",
+      "storageCost": "84436000",
+      "storageRebate": "978120",
+      "nonRefundableStorageFee": "9880"
+    },
+    "modifiedAtVersions": [
+      {
+        "objectId": "0x09958ff53f47c1c43316c5ef0954ceb0ac8d5de8baafcc73fc12a5d27da12cb5",
+        "sequenceNumber": "882986249"
+      }
+    ],
+    "transactionDigest": "4cxESEGZtLT6us6uf3o7SBdiPjBvjxJ1LicF799dqink",
+    "created": [
+      {
+        "owner": {
+          "AddressOwner": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c"
+        },
+        "reference": {
+          "objectId": "0xb55e338151c217da6fac4f8cc8fbc2b1b08e8df4eb9e35abb8a6fae66b976894",
+          "version": 882986250,
+          "digest": "6WEcbGkcb65smqpjMJ4n8aYFjUM97xcUWf7Kd8WkkYWi"
+        }
+      },
+      {
+        "owner": "Immutable",
+        "reference": {
+          "objectId": "0xcb5cc62066b4bbc2e66961b48d5141f9cf3ec119e33a7f6d6ec235a1d413b14c",
+          "version": 1,
+          "digest": "4oxSQDDK88EmdFYaH1sNAdaA4c4WwhYEbyMPAgNqunsb"
+        }
+      }
+    ],
+    "mutated": [
+      {
+        "owner": {
+          "AddressOwner": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c"
+        },
+        "reference": {
+          "objectId": "0x09958ff53f47c1c43316c5ef0954ceb0ac8d5de8baafcc73fc12a5d27da12cb5",
+          "version": 882986250,
+          "digest": "6YvajkJZKjDHphjw4tef4aXyLJQ81Uxcoc8CixuCgA5J"
+        }
+      }
+    ],
+    "gasObject": {
+      "owner": {
+        "AddressOwner": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c"
+      },
+      "reference": {
+        "objectId": "0x09958ff53f47c1c43316c5ef0954ceb0ac8d5de8baafcc73fc12a5d27da12cb5",
+        "version": 882986250,
+        "digest": "6YvajkJZKjDHphjw4tef4aXyLJQ81Uxcoc8CixuCgA5J"
+      }
+    },
+    "dependencies": [
+      "5TjT738q9xbQpdFHKbLLdCpivXKRQa2w5KXfMpCpSJb5",
+      "BEVGeVYcUJfuAzBof6yW816Rq6hZD1kUCEoPkAr49pyf"
+    ]
+  },
+  "objectChanges": [
+    {
+      "type": "mutated",
+      "sender": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c",
+      "owner": {
+        "AddressOwner": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c"
+      },
+      "objectType": "0x2::coin::Coin<0x2::sui::SUI>",
+      "objectId": "0x09958ff53f47c1c43316c5ef0954ceb0ac8d5de8baafcc73fc12a5d27da12cb5",
+      "version": "882986250",
+      "previousVersion": "882986249",
+      "digest": "6YvajkJZKjDHphjw4tef4aXyLJQ81Uxcoc8CixuCgA5J"
+    },
+    {
+      "type": "created",
+      "sender": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c",
+      "owner": {
+        "AddressOwner": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c"
+      },
+      "objectType": "0x2::package::UpgradeCap",
+      "objectId": "0xb55e338151c217da6fac4f8cc8fbc2b1b08e8df4eb9e35abb8a6fae66b976894",
+      "version": "882986250",
+      "digest": "6WEcbGkcb65smqpjMJ4n8aYFjUM97xcUWf7Kd8WkkYWi"
+    },
+    {
+      "type": "published",
+      "packageId": "0xcb5cc62066b4bbc2e66961b48d5141f9cf3ec119e33a7f6d6ec235a1d413b14c",
+      "version": "1",
+      "digest": "4oxSQDDK88EmdFYaH1sNAdaA4c4WwhYEbyMPAgNqunsb",
+      "modules": [
+        "attestation",
+        "coverage",
+        "engagement",
+        "errors",
+        "events",
+        "namespace",
+        "policy",
+        "receipt",
+        "seal_policy"
+      ]
+    }
+  ],
+  "balanceChanges": [
+    {
+      "owner": {
+        "AddressOwner": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c"
+      },
+      "coinType": "0x2::sui::SUI",
+      "amount": "-84457880"
+    }
+  ],
+  "timestampMs": "1780191149126",
+  "checkpoint": "342977447"
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@compliancevault/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ComplianceVault off-chain prover SDK — merkle/batch_hash mirror of receipt.move + anchor PTB builder.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./core": "./src/core/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@mysten/sui": "^2.16.2",
+    "cbor": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0"
+  }
+}

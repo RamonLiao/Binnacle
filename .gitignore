@@ -1,0 +1,19 @@
+tasks/progress.md
+tasks/lessons.md
+
+# secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# CLAUDE-related (global rule: do not upload)
+.claude/
+CLAUDE.md
+
+# nested git repo (decide later)
+apps/auditor-ui/
+
+# deps
+node_modules/

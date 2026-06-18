@@ -1,0 +1,25 @@
+{
+  "name": "@compliancevault/indexer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ComplianceVault custom indexer — polls BatchAnchored/Engagement events via GraphQL into SQLite and serves the auditor-UI REST contract (spec §6).",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "seed": "tsx src/seed.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mysten/sui": "^2.16.2",
+    "better-sqlite3": "^11.8.1",
+    "fastify": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0"
+  }
+}
