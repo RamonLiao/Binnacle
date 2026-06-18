@@ -12,8 +12,5 @@ tasks/lessons.md
 .claude/
 CLAUDE.md
 
-# nested git repo (decide later)
-apps/auditor-ui/
-
 # deps
 node_modules/
