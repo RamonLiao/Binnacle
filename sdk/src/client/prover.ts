@@ -81,7 +81,13 @@ export class BatchProver {
       blobIds,
       parentBatchHash: input.parentBatchHash,
     };
-    const { digest } = await this.anchor.anchorBatch(anchorInput, opts);
+    // BatchProver's positive-brand mock-fence (step 1) is the authoritative real/mock
+    // gate; it strictly supersedes AnchorClient's own `allowMockAnchor` guard. Since
+    // we only reach here with proven-real impls (or an explicit allowMock opt-in),
+    // permit the anchor unconditionally — the lower guard must not re-deny a real
+    // batch. Without this, a real run requires the misleadingly-named
+    // ALLOW_MOCK_ANCHOR=true env (final-review Important).
+    const { digest } = await this.anchor.anchorBatch(anchorInput, { ...opts, allowMockAnchor: true });
     return { digest, blobIds };
   }
 }

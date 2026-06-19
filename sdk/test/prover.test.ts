@@ -99,6 +99,26 @@ test('proveBatch enforces MAX_EVENT_BYTES', async () => {
   await assert.rejects(() => prover.proveBatch(baseInput(chained(1)), { allowMock: true, maxEventBytes: 1 }), /MAX_EVENT_BYTES|exceeds/i);
 });
 
+test('proveBatch anchors a real batch WITHOUT requiring ALLOW_MOCK_ANCHOR (gate superseded)', async () => {
+  // Stub that mimics AnchorClient's default-deny guard: throws unless allowMockAnchor.
+  const seen: any[] = [];
+  const gatedAnchor = {
+    anchorBatch: async (_input: any, opts?: any) => {
+      seen.push(opts);
+      if (!opts?.allowMockAnchor) throw new Error('mock anchor blocked');
+      return { digest: '0xOK' };
+    },
+  } as any;
+  const stub = { encrypt: async () => ({ encryptedObject: new Uint8Array([1]), key: new Uint8Array() }) } as any;
+  const realSeal = new SealEncryptorImpl({ sealClient: stub, packageId: PKG, namespaceId: NS, skipSelfCheck: true });
+  const fakeWalrusClient = { walrus: { writeBlob: async () => ({ blobId: Buffer.from(Uint8Array.from({ length: 32 }, (_, i) => i)).toString('base64url') }) } } as any;
+  const realStore = new RealWalrusStore(fakeWalrusClient, {} as any, 3);
+  const prover = new BatchProver(realSeal, realStore, gatedAnchor);
+  const res = await prover.proveBatch(baseInput(chained(1))); // no env, no allowMock — must still anchor
+  assert.equal(res.digest, '0xOK');
+  assert.equal(seen[0].allowMockAnchor, true); // BatchProver forwarded the permit
+});
+
 // monkey: empty batch
 test('proveBatch rejects an empty event list', async () => {
   const { client } = fakeAnchor();

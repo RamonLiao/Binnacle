@@ -80,10 +80,13 @@ async function main() {
   const anchor = new AnchorClient(baseClient, signer);
   const prover = new BatchProver(seal, store, anchor);
 
-  const res = await prover.proveBatch({
-    events, runId: new Uint8Array(32).fill(0xe2), parentBatchHash: new Uint8Array(0),
-    packageId: PACKAGE_ID, namespaceId, writerCapId,
-  });
+  const res = await prover.proveBatch(
+    {
+      events, runId: new Uint8Array(32).fill(0xe2), parentBatchHash: new Uint8Array(0),
+      packageId: PACKAGE_ID, namespaceId, writerCapId,
+    },
+    process.env.MAX_EVENT_BYTES ? { maxEventBytes: Number(process.env.MAX_EVENT_BYTES) } : undefined,
+  );
   console.log('blobIds:', res.blobIds.map((b) => toHex(b)));
   console.log('anchor digest:', res.digest);
   console.log('suiscan:', suiscan(res.digest));
