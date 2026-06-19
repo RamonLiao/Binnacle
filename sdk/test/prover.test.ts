@@ -119,6 +119,21 @@ test('proveBatch anchors a real batch WITHOUT requiring ALLOW_MOCK_ANCHOR (gate 
   assert.equal(seen[0].allowMockAnchor, true); // BatchProver forwarded the permit
 });
 
+test('mock blobs do NOT auto-permit the anchor (no fail-open): gated anchor still denies', async () => {
+  const gatedAnchor = {
+    anchorBatch: async (_i: any, opts?: any) => {
+      if (!opts?.allowMockAnchor) throw new Error('mock anchor blocked');
+      return { digest: '0xOK' };
+    },
+  } as any;
+  const prover = new BatchProver(new MockSealEncryptor(), new MockWalrusStore(), gatedAnchor);
+  // allowMock lets the fence pass, but mock impls must NOT auto-permit the anchor.
+  await assert.rejects(() => prover.proveBatch(baseInput(chained(1)), { allowMock: true }), /mock anchor blocked/i);
+  // ...unless the caller explicitly permits mock anchoring (Stage B demo path).
+  const res = await prover.proveBatch(baseInput(chained(1)), { allowMock: true, allowMockAnchor: true });
+  assert.equal(res.digest, '0xOK');
+});
+
 // monkey: empty batch
 test('proveBatch rejects an empty event list', async () => {
   const { client } = fakeAnchor();
