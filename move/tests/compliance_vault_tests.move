@@ -311,13 +311,13 @@ fun mint_eng(sc: &mut ts::Scenario, filter: vector<string::String>, expires_at_m
     ts::return_to_sender(sc, acap);
 }
 
-fun ns_id_bytes(sc: &mut ts::Scenario): vector<u8> {
+/// Returns the namespace ID (not bytes) for use in bucket_id computation.
+fun ns_id(sc: &mut ts::Scenario): sui::object::ID {
     ts::next_tx(sc, AUDITOR);
     let ns = ts::take_shared<AgentNamespace>(sc);
     let id = namespace::id(&ns);
-    let bytes = object::id_to_bytes(&id);
     ts::return_shared(ns);
-    bytes
+    id
 }
 
 #[test]
@@ -325,7 +325,9 @@ fun seal_approve_happy_path() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
     mint_eng(&mut sc, vector[], 1_000_000);
-    let id_bytes = ns_id_bytes(&mut sc);
+    let nid = ns_id(&mut sc);
+    // ts=500ms -> epoch_day=0 ; type="tool_call"
+    let id_bytes = seal_policy::bucket_id_for_test(nid, 500, string::utf8(b"tool_call"));
 
     ts::next_tx(&mut sc, AUDITOR);
     {
@@ -367,7 +369,8 @@ fun seal_approve_wrong_sender_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
     mint_eng(&mut sc, vector[], 1_000_000);
-    let id_bytes = ns_id_bytes(&mut sc);
+    let nid = ns_id(&mut sc);
+    let id_bytes = seal_policy::bucket_id_for_test(nid, 500, string::utf8(b"tool_call"));
 
     ts::next_tx(&mut sc, STRANGER); // not the auditor
     {
@@ -388,7 +391,9 @@ fun seal_approve_expired_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
     mint_eng(&mut sc, vector[], 100); // expires at 100ms
-    let id_bytes = ns_id_bytes(&mut sc);
+    let nid = ns_id(&mut sc);
+    // ts=50ms -> epoch_day=0 ; correct bucket id so we reach expiry check
+    let id_bytes = seal_policy::bucket_id_for_test(nid, 50, string::utf8(b"tool_call"));
 
     ts::next_tx(&mut sc, AUDITOR);
     {
@@ -410,7 +415,8 @@ fun seal_approve_revoked_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
     mint_eng(&mut sc, vector[], 1_000_000);
-    let id_bytes = ns_id_bytes(&mut sc);
+    let nid = ns_id(&mut sc);
+    let id_bytes = seal_policy::bucket_id_for_test(nid, 500, string::utf8(b"tool_call"));
 
     // admin revokes
     ts::next_tx(&mut sc, ADMIN);
@@ -441,14 +447,119 @@ fun seal_approve_type_filter_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
     mint_eng(&mut sc, vector[string::utf8(b"prompt")], 1_000_000); // only "prompt"
-    let id_bytes = ns_id_bytes(&mut sc);
+    let nid = ns_id(&mut sc);
+    // Use correct bucket for "tool_call" so we reach the type-filter check
+    let id_bytes = seal_policy::bucket_id_for_test(nid, 500, string::utf8(b"tool_call"));
 
     ts::next_tx(&mut sc, AUDITOR);
     {
         let eng = ts::take_shared<EngagementObject>(&sc);
         let clk = clock::create_for_testing(sc.ctx());
         seal_policy::seal_approve_for_test(
-            id_bytes, &eng, string::utf8(b"tool_call"), 500, &clk, sc.ctx(), // "tool_call" not allowed
+            id_bytes, &eng, string::utf8(b"tool_call"), 500, &clk, sc.ctx(), // "tool_call" not in filter ["prompt"]
+        );
+        clock::destroy_for_testing(clk);
+        ts::return_shared(eng);
+    };
+    ts::end(sc);
+}
+
+// ---------------------------------------------------------------------------
+// Bucket-scope tests (Task 1, Stage C) — per-(day, event_type) IBE binding
+// ---------------------------------------------------------------------------
+
+#[test]
+fun seal_approve_correct_bucket_passes() {
+    // Engagement scope: [0 .. 1_000_000], filter=["login"], auditor=AUDITOR, not revoked.
+    // ts=500ms -> epoch_day=0 ; type="login" -> compute correct bucket id -> passes
+    let mut sc = ts::begin(ADMIN);
+    bootstrap(&mut sc);
+    mint_eng(&mut sc, vector[string::utf8(b"login")], 1_000_000);
+    let nid = ns_id(&mut sc);
+    let id_bytes = seal_policy::bucket_id_for_test(nid, 500, string::utf8(b"login"));
+
+    ts::next_tx(&mut sc, AUDITOR);
+    {
+        let eng = ts::take_shared<EngagementObject>(&sc);
+        let mut clk = clock::create_for_testing(sc.ctx());
+        clock::set_for_testing(&mut clk, 500);
+        seal_policy::seal_approve_for_test(
+            id_bytes, &eng, string::utf8(b"login"), 500, &clk, sc.ctx(),
+        );
+        clock::destroy_for_testing(clk);
+        ts::return_shared(eng);
+    };
+    ts::end(sc);
+}
+
+#[test]
+#[expected_failure(abort_code = 8, location = compliance_vault::seal_policy)] // scope_mismatch (bucket for day D+1 != bucket for day D)
+fun seal_approve_wrong_day_id_aborts() {
+    // id derived for epoch_day=1 (ts=86_400_000+500) but requested_ts_ms=500 (epoch_day=0) -> mismatch
+    let mut sc = ts::begin(ADMIN);
+    bootstrap(&mut sc);
+    mint_eng(&mut sc, vector[string::utf8(b"login")], 1_000_000);
+    let nid = ns_id(&mut sc);
+    // bucket for day D+1 = 86_400_000 + 500
+    let next_day_ts: u64 = 86_400_500;
+    let wrong_id = seal_policy::bucket_id_for_test(nid, next_day_ts, string::utf8(b"login"));
+
+    ts::next_tx(&mut sc, AUDITOR);
+    {
+        let eng = ts::take_shared<EngagementObject>(&sc);
+        let clk = clock::create_for_testing(sc.ctx());
+        // requested_ts_ms=500 (day 0) but id is for day 1 -> bucket mismatch
+        seal_policy::seal_approve_for_test(
+            wrong_id, &eng, string::utf8(b"login"), 500, &clk, sc.ctx(),
+        );
+        clock::destroy_for_testing(clk);
+        ts::return_shared(eng);
+    };
+    ts::end(sc);
+}
+
+#[test]
+#[expected_failure(abort_code = 8, location = compliance_vault::seal_policy)] // scope_mismatch (bucket for "login" != bucket for "logout")
+fun seal_approve_wrong_type_id_aborts() {
+    // id derived for type "login" but requested_event_type = "logout" -> mismatch
+    let mut sc = ts::begin(ADMIN);
+    bootstrap(&mut sc);
+    mint_eng(&mut sc, vector[], 1_000_000); // empty filter = all types
+    let nid = ns_id(&mut sc);
+    let wrong_id = seal_policy::bucket_id_for_test(nid, 500, string::utf8(b"login"));
+
+    ts::next_tx(&mut sc, AUDITOR);
+    {
+        let eng = ts::take_shared<EngagementObject>(&sc);
+        let clk = clock::create_for_testing(sc.ctx());
+        // id is for "login" but we request "logout"
+        seal_policy::seal_approve_for_test(
+            wrong_id, &eng, string::utf8(b"logout"), 500, &clk, sc.ctx(),
+        );
+        clock::destroy_for_testing(clk);
+        ts::return_shared(eng);
+    };
+    ts::end(sc);
+}
+
+#[test]
+#[expected_failure(abort_code = 8, location = compliance_vault::seal_policy)] // scope_mismatch (ts outside engagement window)
+fun seal_approve_out_of_scope_ts_aborts() {
+    // CORRECT bucket for (ts=1_000_001, "login") — epoch_day=0, same as ts=500.
+    // ts=1_000_001 is outside scope_end=1_000_000 -> window check aborts with scope_mismatch.
+    let mut sc = ts::begin(ADMIN);
+    bootstrap(&mut sc);
+    mint_eng(&mut sc, vector[string::utf8(b"login")], 1_000_000);
+    let nid = ns_id(&mut sc);
+    let ts_out: u64 = 1_000_001; // outside scope_end=1_000_000 ; still epoch_day=0
+    let id_bytes = seal_policy::bucket_id_for_test(nid, ts_out, string::utf8(b"login"));
+
+    ts::next_tx(&mut sc, AUDITOR);
+    {
+        let eng = ts::take_shared<EngagementObject>(&sc);
+        let clk = clock::create_for_testing(sc.ctx());
+        seal_policy::seal_approve_for_test(
+            id_bytes, &eng, string::utf8(b"login"), ts_out, &clk, sc.ctx(),
         );
         clock::destroy_for_testing(clk);
         ts::return_shared(eng);
