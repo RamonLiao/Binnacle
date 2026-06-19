@@ -8,6 +8,7 @@ module compliance_vault::golden_vectors;
 use std::hash;
 use std::bcs;
 use std::debug;
+use sui::object;
 
 fun sha(b: vector<u8>): vector<u8> { hash::sha2_256(b) }
 
@@ -72,4 +73,21 @@ fun emit_golden() {
     debug::print(&three_root);
     debug::print(&bh_genesis);
     debug::print(&bh_chained);
+}
+
+#[test]
+fun emit_bucket_vectors() {
+    // Fixed namespace id = 0x11 * 32 (matches sdk/test fixture NS = '0x'+'11'.repeat(32)).
+    let ns_bytes = x"1111111111111111111111111111111111111111111111111111111111111111";
+    let ns_id = object::id_from_bytes(ns_bytes);
+    // Case A: ts = 1_700_000_000_000 ms, type = "login"
+    debug::print(&compliance_vault::seal_policy::bucket_id_for_test(ns_id, 1_700_000_000_000, std::string::utf8(b"login")));
+    // Case B: ts = 1_700_006_400_000 ms, type = "login"
+    debug::print(&compliance_vault::seal_policy::bucket_id_for_test(ns_id, 1_700_006_400_000, std::string::utf8(b"login")));
+    // Case C: NUL-prefixed type
+    debug::print(&compliance_vault::seal_policy::bucket_id_for_test(ns_id, 1_700_000_000_000, std::string::utf8(b"\x00login")));
+    // Case D: empty type
+    debug::print(&compliance_vault::seal_policy::bucket_id_for_test(ns_id, 1_700_000_000_000, std::string::utf8(b"")));
+    // Case E: multi-byte UTF-8 type ("登入")
+    debug::print(&compliance_vault::seal_policy::bucket_id_for_test(ns_id, 1_700_000_000_000, std::string::utf8(b"\xe7\x99\xbb\xe5\x85\xa5")));
 }

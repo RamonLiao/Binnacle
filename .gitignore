@@ -14,3 +14,6 @@ CLAUDE.md
 
 # deps
 node_modules/
+
+# Move build artifacts
+move/build/

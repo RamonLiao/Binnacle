@@ -14,7 +14,9 @@
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@mysten/sui": "^2.16.2",
+    "@mysten/seal": "^1.2.1",
+    "@mysten/sui": "^2.19.0",
+    "@mysten/walrus": "^1.2.1",
     "cbor": "^9.0.2"
   },
   "devDependencies": {
