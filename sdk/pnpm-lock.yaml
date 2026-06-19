@@ -8,9 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@mysten/seal':
+        specifier: ^1.2.1
+        version: 1.2.1(@mysten/sui@2.19.0(typescript@5.9.3))
       '@mysten/sui':
-        specifier: ^2.16.2
-        version: 2.17.0(typescript@5.9.3)
+        specifier: ^2.19.0
+        version: 2.19.0(typescript@5.9.3)
+      '@mysten/walrus':
+        specifier: ^1.2.1
+        version: 1.2.1(@mysten/sui@2.19.0(typescript@5.9.3))
       cbor:
         specifier: ^9.0.2
         version: 9.0.2
@@ -222,15 +228,28 @@ packages:
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
 
-  '@mysten/bcs@2.0.5':
-    resolution: {integrity: sha512-Dop9Xq36DPLlsmIDQZvUg4uJeBBxIGirgp2OXGaEff+mtLKFBoW2HnE3aSTSSpiMQH9XRhjwtiM16zFJhFqz0Q==}
+  '@mysten/bcs@2.1.0':
+    resolution: {integrity: sha512-rIR/cDAqDfBDxmYEZXppN/on8gmh1OW0dYi/Bk2kMBZcYMTaBaEtEX1VR6g7HicVxuMbFAIP0/SQkdH7J9Y5dQ==}
 
-  '@mysten/sui@2.17.0':
-    resolution: {integrity: sha512-TrS1BCPm4V6rC69MBejmcqnKIyJ5t1iksax4XA9jWarZxAAp9LMmdxEBebejyDT/yAJxYIf3fNm5WBkHE2qnIw==}
+  '@mysten/seal@1.2.1':
+    resolution: {integrity: sha512-qHPMcLLj4J9BHy3uDIC+7c1J4V07lRHr89IGuS9b3OKPqgJwcd9bqL8L1rCRs0cpdzh5FxHwY9D2TtCEig7SnA==}
+    peerDependencies:
+      '@mysten/sui': ^2.19.0
+
+  '@mysten/sui@2.19.0':
+    resolution: {integrity: sha512-dXhYK3pUiaybEB6T9nru+cPrFa61NMSjEknOCoAEV5WCC589iY6bP7EM+H84DBMZttB1LhD3gpYnPntQ4Vvcgg==}
     engines: {node: '>=22'}
 
-  '@mysten/utils@0.3.3':
-    resolution: {integrity: sha512-gVHn5toh24eXXLEyBknwwM2F/tbDgqPX0yj77KtHjuoYUallcQ9vSwGfGsAy39IcTB259Yprt/ZOEwdup+zrpA==}
+  '@mysten/utils@0.4.0':
+    resolution: {integrity: sha512-nHlXECBl9kE+AHF/aw5a7JVNizae8Kb71A4H18BV/sXd5/l2BaWNGWVatq05fzJo3hF78AWorDxa++1TgcBKWw==}
+
+  '@mysten/walrus-wasm@0.3.0':
+    resolution: {integrity: sha512-uuTbK4woj+R4bQILLcSxBJCy1rIL3EDELnA7jjWbC3Q9bsQZFzwEKOPVtei4DKb3nT7zeALD/ky24MkeUZyDNQ==}
+
+  '@mysten/walrus@1.2.1':
+    resolution: {integrity: sha512-vLV2b5dNbnzcFFn0k4I9cDvqR+jQD+UfvFC8dhWfoNiNmJBrqJMDKnSbetK9Ptxk8JB43vRvQfaUmSFtDf3X8Q==}
+    peerDependencies:
+      '@mysten/sui': ^2.19.0
 
   '@noble/curves@2.2.0':
     resolution: {integrity: sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ==}
@@ -264,6 +283,9 @@ packages:
   cbor@9.0.2:
     resolution: {integrity: sha512-JPypkxsB10s9QOWwa6zwPzqE1Md3vqpPc+cai4sAecuCsRyAtAl/pMyhPlMbT/xtPnm2dznJZYRLui57qiRhaQ==}
     engines: {node: '>=16'}
+
+  dataloader@2.2.3:
+    resolution: {integrity: sha512-y2krtASINtPFS1rSDjacrFgn1dcUuoREVabwlOGOe4SdxenREqwjwjElAdwvbGM7kgZz9a3KVicWR7vcz8rnzA==}
 
   esbuild@0.28.1:
     resolution: {integrity: sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw==}
@@ -420,16 +442,23 @@ snapshots:
     dependencies:
       graphql: 16.14.2
 
-  '@mysten/bcs@2.0.5':
+  '@mysten/bcs@2.1.0':
     dependencies:
-      '@mysten/utils': 0.3.3
+      '@mysten/utils': 0.4.0
       '@scure/base': 2.2.0
 
-  '@mysten/sui@2.17.0(typescript@5.9.3)':
+  '@mysten/seal@1.2.1(@mysten/sui@2.19.0(typescript@5.9.3))':
+    dependencies:
+      '@mysten/bcs': 2.1.0
+      '@mysten/sui': 2.19.0(typescript@5.9.3)
+      '@noble/curves': 2.2.0
+      '@noble/hashes': 2.2.0
+
+  '@mysten/sui@2.19.0(typescript@5.9.3)':
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.14.2)
-      '@mysten/bcs': 2.0.5
-      '@mysten/utils': 0.3.3
+      '@mysten/bcs': 2.1.0
+      '@mysten/utils': 0.4.0
       '@noble/curves': 2.2.0
       '@noble/hashes': 2.2.0
       '@protobuf-ts/grpcweb-transport': 2.11.1
@@ -447,9 +476,19 @@ snapshots:
       - '@gql.tada/vue-support'
       - typescript
 
-  '@mysten/utils@0.3.3':
+  '@mysten/utils@0.4.0':
     dependencies:
       '@scure/base': 2.2.0
+
+  '@mysten/walrus-wasm@0.3.0': {}
+
+  '@mysten/walrus@1.2.1(@mysten/sui@2.19.0(typescript@5.9.3))':
+    dependencies:
+      '@mysten/bcs': 2.1.0
+      '@mysten/sui': 2.19.0(typescript@5.9.3)
+      '@mysten/utils': 0.4.0
+      '@mysten/walrus-wasm': 0.3.0
+      dataloader: 2.2.3
 
   '@noble/curves@2.2.0':
     dependencies:
@@ -488,6 +527,8 @@ snapshots:
   cbor@9.0.2:
     dependencies:
       nofilter: 3.1.0
+
+  dataloader@2.2.3: {}
 
   esbuild@0.28.1:
     optionalDependencies:
