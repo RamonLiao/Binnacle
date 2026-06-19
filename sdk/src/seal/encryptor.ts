@@ -1,4 +1,5 @@
-import type { SealClient } from '@mysten/seal';
+import { SealClient } from '@mysten/seal';
+import type { SealCompatibleClient } from '@mysten/seal';
 import { toHex } from '@mysten/sui/utils';
 import { bucketId } from './bucket.ts';
 import { eventHash } from '../core/index.ts';
@@ -55,6 +56,23 @@ export class SealEncryptorImpl implements SealEncryptor {
     });
     return encryptedObject;
   }
+}
+
+/**
+ * Build a real SealEncryptorImpl from env: SEAL_PACKAGE_ID (original pkg id) +
+ * SEAL_KEY_SERVER_IDS (exactly 3 object ids). Fail-loud on missing/short config.
+ */
+export function sealEncryptorFromEnv(opts: { suiClient: SealCompatibleClient; namespaceId: string }): SealEncryptorImpl {
+  const pkg = process.env.SEAL_PACKAGE_ID;
+  if (!pkg) throw new Error('SEAL_PACKAGE_ID is required (original package id)');
+  const ids = (process.env.SEAL_KEY_SERVER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (ids.length !== 3) throw new Error(`SEAL_KEY_SERVER_IDS must list exactly 3 object ids, got ${ids.length}`);
+  const sealClient = new SealClient({
+    suiClient: opts.suiClient,
+    serverConfigs: ids.map((objectId) => ({ objectId, weight: 1 })),
+    verifyKeyServers: true,
+  });
+  return new SealEncryptorImpl({ sealClient, packageId: pkg, namespaceId: opts.namespaceId, skipSelfCheck: true });
 }
 
 const MAGIC = 0x5a;
