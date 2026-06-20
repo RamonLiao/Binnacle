@@ -2,11 +2,13 @@
 name = "compliance_vault"
 edition = "2024.beta"
 license = "Apache-2.0"
+# Set for the testnet upgrade (2026-06-20): original published package id.
+published-at = "0xcb5cc62066b4bbc2e66961b48d5141f9cf3ec119e33a7f6d6ec235a1d413b14c"
 
 [dependencies]
 # Sui / MoveStdlib are added implicitly (Sui 1.45+). Do not list explicitly.
 
 [addresses]
-compliance_vault = "0x0"
+compliance_vault = "0xcb5cc62066b4bbc2e66961b48d5141f9cf3ec119e33a7f6d6ec235a1d413b14c"
 
 [dev-addresses]

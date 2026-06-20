@@ -1,5 +1,5 @@
 import { SealClient } from '@mysten/seal';
-import type { SealCompatibleClient } from '@mysten/seal';
+import type { SealCompatibleClient, KeyServerConfig } from '@mysten/seal';
 import { toHex } from '@mysten/sui/utils';
 import { bucketId } from './bucket.ts';
 import { eventHash } from '../core/index.ts';
@@ -17,12 +17,58 @@ export function isReal(x: unknown): boolean {
   return !!x && (x as Record<symbol, unknown>)[REAL] === REAL;
 }
 
+/**
+ * Parse SEAL_KEY_SERVER_IDS into SealClient serverConfigs. Each comma-separated
+ * entry is `objectId` or `objectId@aggregatorUrl` (the `@url` form is required
+ * for a committee-mode server, whose fetch-key calls route through an aggregator
+ * — see @mysten/seal KeyServerConfig.aggregatorUrl). The GTM design (≥3 independent
+ * servers, threshold 2) and a demo config (committee + independent, threshold 2)
+ * are both just different env values — the topology is no longer hard-coded.
+ */
+export function parseSealServerConfigs(raw: string | undefined): KeyServerConfig[] {
+  const entries = (raw ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (entries.length < 2) {
+    throw new Error(
+      `SEAL_KEY_SERVER_IDS must list at least 2 key servers (threshold ≥2, no single-server decrypt), got ${entries.length}`,
+    );
+  }
+  return entries.map((entry) => {
+    // Split on the FIRST '@' only — an aggregator URL may legitimately contain
+    // '@' (userinfo), which a plain split('@') would truncate.
+    const at = entry.indexOf('@');
+    const objectId = at === -1 ? entry : entry.slice(0, at);
+    const aggregatorUrl = at === -1 ? undefined : entry.slice(at + 1);
+    if (!objectId) throw new Error(`empty objectId in SEAL_KEY_SERVER_IDS entry "${entry}"`);
+    if (at !== -1 && !aggregatorUrl) throw new Error(`empty aggregatorUrl after '@' in entry "${entry}"`);
+    return aggregatorUrl ? { objectId, weight: 1, aggregatorUrl } : { objectId, weight: 1 };
+  });
+}
+
+/**
+ * Decryption threshold: SEAL_THRESHOLD if set, else the GTM default of 2 for
+ * ≥3 servers (2-of-N) or n for fewer (require all). Floor is 2, not 1 — a
+ * threshold of 1 lets any single key server decrypt alone, which defeats the
+ * whole no-single-server-decrypt invariant parseSealServerConfigs enforces.
+ * Fail-loud outside [2, n].
+ */
+export function resolveSealThreshold(n: number, raw: string | undefined): number {
+  const t = raw ? Number(raw) : n >= 3 ? 2 : n;
+  if (!Number.isInteger(t) || t < 2 || t > n) {
+    throw new Error(
+      `SEAL_THRESHOLD must be an integer in [2, ${n}] (≥2 = no single-server decrypt; ≤ server count), got ${raw ?? t}`,
+    );
+  }
+  return t;
+}
+
 export interface SealEncryptorOpts {
   sealClient: SealClient;
   /** ORIGINAL published compliance_vault package id (IBE domain). */
   packageId: string;
   /** 32-byte hex namespace id. */
   namespaceId: string;
+  /** TSS decryption threshold; must match the SealClient serverConfigs count policy. */
+  threshold: number;
   skipSelfCheck?: boolean;
 }
 
@@ -31,13 +77,18 @@ export class SealEncryptorImpl implements SealEncryptor {
   private readonly sealClient: SealClient;
   private readonly packageId: string;
   private readonly namespaceId: string;
+  private readonly threshold: number;
 
   constructor(opts: SealEncryptorOpts) {
     if (!opts.packageId) throw new Error('SEAL_PACKAGE_ID (original package id) is required');
     if (!opts.namespaceId) throw new Error('namespaceId is required');
+    if (!Number.isInteger(opts.threshold) || opts.threshold < 1) {
+      throw new Error(`threshold must be a positive integer, got ${opts.threshold}`);
+    }
     this.sealClient = opts.sealClient;
     this.packageId = opts.packageId;
     this.namespaceId = opts.namespaceId;
+    this.threshold = opts.threshold;
     // The live constructor self-roundtrip (V3) needs key servers + an
     // EngagementObject, so it runs in scripts/prove-e2e.ts (§5). Offline unit
     // tests pass skipSelfCheck; this flag is accepted for that path.
@@ -48,7 +99,7 @@ export class SealEncryptorImpl implements SealEncryptor {
     const bucket = bucketId(this.namespaceId, ev.ts_ms, ev.type);
     if (bucket.length !== 32) throw new Error(`bucket id must be 32 bytes, got ${bucket.length}`);
     const { encryptedObject } = await this.sealClient.encrypt({
-      threshold: 2,
+      threshold: this.threshold,
       packageId: this.packageId,
       id: toHex(bucket),
       aad: eventHash(ev),
@@ -60,19 +111,16 @@ export class SealEncryptorImpl implements SealEncryptor {
 
 /**
  * Build a real SealEncryptorImpl from env: SEAL_PACKAGE_ID (original pkg id) +
- * SEAL_KEY_SERVER_IDS (exactly 3 object ids). Fail-loud on missing/short config.
+ * SEAL_KEY_SERVER_IDS (≥2 servers, each `objectId` or `objectId@aggregatorUrl`)
+ * + optional SEAL_THRESHOLD. Fail-loud on missing/short config.
  */
 export function sealEncryptorFromEnv(opts: { suiClient: SealCompatibleClient; namespaceId: string }): SealEncryptorImpl {
   const pkg = process.env.SEAL_PACKAGE_ID;
   if (!pkg) throw new Error('SEAL_PACKAGE_ID is required (original package id)');
-  const ids = (process.env.SEAL_KEY_SERVER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-  if (ids.length !== 3) throw new Error(`SEAL_KEY_SERVER_IDS must list exactly 3 object ids, got ${ids.length}`);
-  const sealClient = new SealClient({
-    suiClient: opts.suiClient,
-    serverConfigs: ids.map((objectId) => ({ objectId, weight: 1 })),
-    verifyKeyServers: true,
-  });
-  return new SealEncryptorImpl({ sealClient, packageId: pkg, namespaceId: opts.namespaceId, skipSelfCheck: true });
+  const serverConfigs = parseSealServerConfigs(process.env.SEAL_KEY_SERVER_IDS);
+  const threshold = resolveSealThreshold(serverConfigs.length, process.env.SEAL_THRESHOLD);
+  const sealClient = new SealClient({ suiClient: opts.suiClient, serverConfigs, verifyKeyServers: true });
+  return new SealEncryptorImpl({ sealClient, packageId: pkg, namespaceId: opts.namespaceId, threshold, skipSelfCheck: true });
 }
 
 const MAGIC = 0x5a;

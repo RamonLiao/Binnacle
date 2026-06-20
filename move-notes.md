@@ -2,6 +2,33 @@
 
 > Architecture-level decisions and on-chain constraints. Update after each Move task.
 
+## 2026-06-20 — Testnet package UPGRADE (Stage C unblock) + Stage C e2e CLOSED
+
+**Why:** `prove-e2e.ts` id-binding self-check aborted `seal_approve` with E_SCOPE_MISMATCH(8) for ALL inputs. Root cause: the deployed package `0xcb5cc6…` (publish 2026-05-31) **predated** the Stage C per-(day,type) bucket re-bind (commit `aaf749f`). On-chain `seal_approve` still ran v1 `id == id_to_bytes(ns)` (namespace-wide), but the SDK encrypts under `id = bucketId(hash)` → never equal. **"Merged to master" ≠ redeployed.** The on-chain self-check (red-team V3) is exactly what caught the stale policy before any blob was anchored.
+
+**Upgrade:** `sui client upgrade` via UpgradeCap `0xb55e33…` (owner = deployer `0x1509…bc4c`). Compatibility check passed (only private `bucket_id` body + `seal_approve` body changed; no struct/public-signature change).
+- **NEW package id** = `0xb878f5e0aaa728475f8fc6971334148100d779921eea6747dabd05a4f59c9a03` (version 2).
+- Upgrade tx: `FxmmZHNp8YXdCnBubRHyw3W6GRm6hchYgu1X49zvhQRh`. UpgradeCap bumped.
+- `Move.toml` now carries `published-at` + named address = original `0xcb5cc6…` (required so the CLI knows the on-chain id for upgrade; Move.lock had no published-id record).
+- **Type origin stays `0xcb5cc6…`** even post-upgrade — owned caps/objects keep type `0xcb5cc6::namespace::*`. Type-filter queries must use the ORIGINAL id, not the new one.
+
+**Seal two-package split (post-upgrade):**
+- `encrypt({ packageId })` MUST be the ORIGINAL `0xcb5cc6…` — Seal rejects a non-first-version id (`InvalidPackageError: not the first version`). This is the IBE domain.
+- The `seal_approve` PTB call target MUST be the LATEST `0xb878…` so the upgraded (per-day-type) policy code runs. Calling the original id runs v1. → new env `SEAL_POLICY_PACKAGE_ID` (defaults to `PACKAGE_ID`).
+
+**Walrus:** direct client→storage-node `writeBlob` repeatedly failed on testnet ("Too many failures while writing blob to nodes", retryable but exhausted). Fix: configure `walrus({ uploadRelay })` → `writeBlobFlow` auto-routes via the relay. Testnet relay `https://upload-relay.testnet.walrus.space`, tip = const ~105 MIST (`sendTip.max` caps it).
+
+**Fresh Stage C namespace** (Stage B ns `0x5b4b…` was already at `seq_next=2` → genesis batch = E_SEQ_REPLAY(2)):
+- `NAMESPACE_ID=0x456b6071900d24182d6f4b2d662cf6b2dbbdc0a86e6e54bdad6c7a15bd1ca793`
+- `WRITER_CAP_ID=0xa988bc39bf8aa5a97fc5830ffb4efb7201c59105a5c9daf18f8cd498d30794e0`
+- `ADMIN_CAP_ID=0xb0b1c46cb0d2fbc9586fd9b505715397e9365a0c31c13288117150882113cf54`
+- `NAMESPACE_INIT_VERSION=909969389`, `ENGAGEMENT_ID=0x3c54430e5881975b978d1a6dae52d4758fb58d71f9a87491c281bbf4e4d13961` (wide scope: start 0, end/expiry 2100, empty type filter, auditor=signer).
+- (bootstrap hit the known read-after-write 404 lag again; recovered ids from the creating tx `A2AY7s…`.)
+
+**prove-e2e SUCCESS:** id-binding self-check ✅; blobIds `242cd647…`, `7dfcf2da…`; anchor digest `6WKvtgAXTskTrPaDHy9BS5y1cxCCbuYhp9ahD9FMmJUn` (status success); ns `seq_next=2`, `batch_index=1`. **Success criterion #5 CLOSED.**
+
+**SDK changes (config generalization, not a design downgrade):** `encryptor.ts` now exports `parseSealServerConfigs` (`objectId` or `objectId@aggregatorUrl`, ≥2 servers) + `resolveSealThreshold` (SEAL_THRESHOLD env, default 2-of-N for ≥3 else n); `SealEncryptorImpl` takes `threshold`. Demo env = committee(`0xb012378…@aggregator`) + independent(`0x73d05…`) 2-of-2; GTM 3-independent still valid by swapping env. 76/76 SDK tests (+4 new), 27/27 Move, typecheck green.
+
 ## 2026-05-30 — sui-architect review of spec v0.1 → v0.2
 
 **Purpose:** audit architecture spec for SUI best practices (object model, caps, upgradeability) before scaffolding. No code written yet.

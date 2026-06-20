@@ -63,7 +63,7 @@ test('proveBatch REJECTS a mock impl on the real path (mock-fence)', async () =>
 test('mock-fence rejects a MIXED real-seal + mock-walrus combo (the dangerous case)', async () => {
   const { client } = fakeAnchor();
   const stub = { encrypt: async () => ({ encryptedObject: new Uint8Array([1]), key: new Uint8Array() }) } as any;
-  const realSeal = new SealEncryptorImpl({ sealClient: stub, packageId: PKG, namespaceId: NS, skipSelfCheck: true });
+  const realSeal = new SealEncryptorImpl({ sealClient: stub, packageId: PKG, namespaceId: NS, threshold: 2, skipSelfCheck: true });
   const prover = new BatchProver(realSeal, new MockWalrusStore(), client); // real seal, MOCK walrus
   await assert.rejects(() => prover.proveBatch(baseInput(chained(1))), /mock impl/i);
 });
@@ -71,7 +71,7 @@ test('mock-fence rejects a MIXED real-seal + mock-walrus combo (the dangerous ca
 test('real-branded seal + real-branded walrus passes the fence', async () => {
   const { client } = fakeAnchor();
   const stub = { encrypt: async () => ({ encryptedObject: new Uint8Array([1]), key: new Uint8Array() }) } as any;
-  const realSeal = new SealEncryptorImpl({ sealClient: stub, packageId: PKG, namespaceId: NS, skipSelfCheck: true });
+  const realSeal = new SealEncryptorImpl({ sealClient: stub, packageId: PKG, namespaceId: NS, threshold: 2, skipSelfCheck: true });
   const fakeWalrusClient = { walrus: { writeBlob: async () => ({ blobId: Buffer.from(Uint8Array.from({ length: 32 }, (_, i) => i)).toString('base64url') }) } } as any;
   const realStore = new RealWalrusStore(fakeWalrusClient, {} as any, 3);
   const prover = new BatchProver(realSeal, realStore, client);
@@ -110,7 +110,7 @@ test('proveBatch anchors a real batch WITHOUT requiring ALLOW_MOCK_ANCHOR (gate 
     },
   } as any;
   const stub = { encrypt: async () => ({ encryptedObject: new Uint8Array([1]), key: new Uint8Array() }) } as any;
-  const realSeal = new SealEncryptorImpl({ sealClient: stub, packageId: PKG, namespaceId: NS, skipSelfCheck: true });
+  const realSeal = new SealEncryptorImpl({ sealClient: stub, packageId: PKG, namespaceId: NS, threshold: 2, skipSelfCheck: true });
   const fakeWalrusClient = { walrus: { writeBlob: async () => ({ blobId: Buffer.from(Uint8Array.from({ length: 32 }, (_, i) => i)).toString('base64url') }) } } as any;
   const realStore = new RealWalrusStore(fakeWalrusClient, {} as any, 3);
   const prover = new BatchProver(realSeal, realStore, gatedAnchor);

@@ -14,7 +14,7 @@ import { toHex } from '@mysten/sui/utils';
 import { signerFromEnv } from '../src/client/signer.ts';
 import { AnchorClient } from '../src/client/anchorClient.ts';
 import { BatchProver } from '../src/client/prover.ts';
-import { sealEncryptorFromEnv } from '../src/seal/encryptor.ts';
+import { sealEncryptorFromEnv, parseSealServerConfigs, resolveSealThreshold } from '../src/seal/encryptor.ts';
 import { RealWalrusStore } from '../src/walrus/store.ts';
 import { bucketId } from '../src/seal/bucket.ts';
 import { encodeEvent, eventHash } from '../src/core/index.ts';
@@ -26,7 +26,17 @@ const hexOf = (u: Uint8Array) => '0x' + Buffer.from(u).toString('hex');
 
 async function main() {
   const baseClient = grpcClient();
-  const walrusClient = baseClient.$extend(walrus());
+  // Route uploads through the testnet upload relay — direct client→storage-node
+  // fan-out is unreliable on testnet ("Too many failures writing blob to nodes").
+  // The relay charges a small WAL/SUI tip (const ~105 MIST); cap it via sendTip.max.
+  const uploadRelayHost = process.env.WALRUS_UPLOAD_RELAY ?? 'https://upload-relay.testnet.walrus.space';
+  const tipMax = Number(process.env.WALRUS_TIP_MAX ?? '1000000');
+  if (!Number.isSafeInteger(tipMax) || tipMax < 0) {
+    throw new Error(`WALRUS_TIP_MAX must be a non-negative safe integer (MIST), got "${process.env.WALRUS_TIP_MAX}"`);
+  }
+  const walrusClient = baseClient.$extend(
+    walrus({ uploadRelay: { host: uploadRelayHost, sendTip: { max: tipMax } } }),
+  );
   const signer = signerFromEnv();
 
   const namespaceId = requireEnv('NAMESPACE_ID');
@@ -47,19 +57,21 @@ async function main() {
   const events = [e0, e1];
 
   // ── MANDATORY id-binding self-check BEFORE anchoring real blobs (red-team V3) ──
-  const sealClient = new SealClient({
-    suiClient: baseClient,
-    serverConfigs: requireEnv('SEAL_KEY_SERVER_IDS').split(',').map((id) => ({ objectId: id.trim(), weight: 1 })),
-    verifyKeyServers: true,
-  });
+  const serverConfigs = parseSealServerConfigs(requireEnv('SEAL_KEY_SERVER_IDS'));
+  const threshold = resolveSealThreshold(serverConfigs.length, process.env.SEAL_THRESHOLD);
+  const sealClient = new SealClient({ suiClient: baseClient, serverConfigs, verifyKeyServers: true });
   const probeBucket = bucketId(namespaceId, e0.ts_ms, e0.type);
   const { encryptedObject } = await sealClient.encrypt({
-    threshold: 2, packageId: sealPackageId, id: toHex(probeBucket), aad: eventHash(e0), data: encodeEvent(e0),
+    threshold, packageId: sealPackageId, id: toHex(probeBucket), aad: eventHash(e0), data: encodeEvent(e0),
   });
   const sessionKey = await SessionKey.create({ address: signer.toSuiAddress(), packageId: sealPackageId, ttlMin: 10, signer, suiClient: baseClient });
+  // Encrypt under the ORIGINAL package id (Seal IBE domain — requires first
+  // version), but call seal_approve at the LATEST package id so the upgraded
+  // (per-(day,type) bucket) policy code runs. After an upgrade these differ.
+  const policyPackageId = process.env.SEAL_POLICY_PACKAGE_ID ?? PACKAGE_ID;
   const approveTx = new Transaction();
   approveTx.moveCall({
-    target: `${sealPackageId}::seal_policy::seal_approve`,
+    target: `${policyPackageId}::seal_policy::seal_approve`,
     arguments: [
       approveTx.pure.vector('u8', Array.from(probeBucket)),
       approveTx.object(engagementId),
