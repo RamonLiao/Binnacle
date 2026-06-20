@@ -157,7 +157,7 @@ fun red_team_round_3_coverage_chain_truth() {
 // RT3b — Coverage: heartbeat rejects a foreign namespace (binding DEFENDED)
 // =============================================================================
 #[test]
-#[expected_failure(abort_code = 12, location = compliance_vault::coverage)] // unauthorized
+#[expected_failure(abort_code = compliance_vault::errors::E_UNAUTHORIZED, location = compliance_vault::coverage)] // unauthorized
 fun red_team_round_3b_coverage_cross_namespace_aborts() {
     let mut sc = ts::begin(ADMIN);
     // namespace A + its heartbeat
@@ -196,7 +196,7 @@ fun red_team_round_3b_coverage_cross_namespace_aborts() {
 // RT5 — Integer: anchor_batch batch-size overflow guard (DEFENDED)
 // =============================================================================
 #[test]
-#[expected_failure(abort_code = 13, location = compliance_vault::receipt)] // seq_overflow
+#[expected_failure(abort_code = compliance_vault::errors::E_SEQ_OVERFLOW, location = compliance_vault::receipt)] // seq_overflow
 fun red_team_round_5_batch_too_large() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);

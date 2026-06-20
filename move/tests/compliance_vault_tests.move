@@ -83,7 +83,7 @@ fun anchor_two_batches_advances_chain() {
 }
 
 #[test]
-#[expected_failure(abort_code = 1, location = compliance_vault::receipt)] // seq_gap
+#[expected_failure(abort_code = compliance_vault::errors::E_SEQ_GAP, location = compliance_vault::receipt)] // seq_gap
 fun anchor_seq_gap_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
@@ -104,7 +104,7 @@ fun anchor_seq_gap_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 2, location = compliance_vault::receipt)] // seq_replay
+#[expected_failure(abort_code = compliance_vault::errors::E_SEQ_REPLAY, location = compliance_vault::receipt)] // seq_replay
 fun anchor_seq_replay_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
@@ -130,7 +130,7 @@ fun anchor_seq_replay_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 3, location = compliance_vault::receipt)] // len_mismatch
+#[expected_failure(abort_code = compliance_vault::errors::E_LEN_MISMATCH, location = compliance_vault::receipt)] // len_mismatch
 fun anchor_blob_len_mismatch_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
@@ -151,7 +151,7 @@ fun anchor_blob_len_mismatch_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 11, location = compliance_vault::receipt)] // parent_hash_mismatch
+#[expected_failure(abort_code = compliance_vault::errors::E_PARENT_HASH_MISMATCH, location = compliance_vault::receipt)] // parent_hash_mismatch
 fun anchor_parent_hash_mismatch_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
@@ -176,7 +176,7 @@ fun anchor_parent_hash_mismatch_aborts() {
 // ---------------------------------------------------------------------------
 
 #[test]
-#[expected_failure(abort_code = 9, location = compliance_vault::namespace)] // unauthorized_writer
+#[expected_failure(abort_code = compliance_vault::errors::E_UNAUTHORIZED_WRITER, location = compliance_vault::namespace)] // unauthorized_writer
 fun cross_tenant_writer_cap_aborts() {
     let mut sc = ts::begin(ADMIN);
     // namespace A
@@ -217,7 +217,7 @@ fun cross_tenant_writer_cap_aborts() {
 // ---------------------------------------------------------------------------
 
 #[test]
-#[expected_failure(abort_code = 5, location = compliance_vault::namespace)] // namespace_sealed
+#[expected_failure(abort_code = compliance_vault::errors::E_NAMESPACE_SEALED, location = compliance_vault::namespace)] // namespace_sealed
 fun update_policy_after_seal_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
@@ -266,7 +266,7 @@ fun merkle_single_leaf_verifies() {
 }
 
 #[test]
-#[expected_failure(abort_code = 10, location = compliance_vault::receipt)] // invalid_merkle_proof (seq out of range)
+#[expected_failure(abort_code = compliance_vault::errors::E_INVALID_MERKLE_PROOF, location = compliance_vault::receipt)] // invalid_merkle_proof (seq out of range)
 fun merkle_seq_out_of_range_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
@@ -344,7 +344,7 @@ fun seal_approve_happy_path() {
 }
 
 #[test]
-#[expected_failure(abort_code = 8, location = compliance_vault::seal_policy)] // scope_mismatch (wrong identity bytes)
+#[expected_failure(abort_code = compliance_vault::errors::E_SCOPE_MISMATCH, location = compliance_vault::seal_policy)] // scope_mismatch (wrong identity bytes)
 fun seal_approve_identity_mismatch_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
@@ -364,7 +364,7 @@ fun seal_approve_identity_mismatch_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 8, location = compliance_vault::seal_policy)] // scope_mismatch (sender != auditor)
+#[expected_failure(abort_code = compliance_vault::errors::E_SCOPE_MISMATCH, location = compliance_vault::seal_policy)] // scope_mismatch (sender != auditor)
 fun seal_approve_wrong_sender_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
@@ -386,7 +386,7 @@ fun seal_approve_wrong_sender_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 6, location = compliance_vault::seal_policy)] // engagement_expired
+#[expected_failure(abort_code = compliance_vault::errors::E_ENGAGEMENT_EXPIRED, location = compliance_vault::seal_policy)] // engagement_expired
 fun seal_approve_expired_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
@@ -410,7 +410,7 @@ fun seal_approve_expired_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 7, location = compliance_vault::seal_policy)] // engagement_revoked
+#[expected_failure(abort_code = compliance_vault::errors::E_ENGAGEMENT_REVOKED, location = compliance_vault::seal_policy)] // engagement_revoked
 fun seal_approve_revoked_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
@@ -442,7 +442,7 @@ fun seal_approve_revoked_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 8, location = compliance_vault::seal_policy)] // scope_mismatch (event type not in filter)
+#[expected_failure(abort_code = compliance_vault::errors::E_SCOPE_MISMATCH, location = compliance_vault::seal_policy)] // scope_mismatch (event type not in filter)
 fun seal_approve_type_filter_aborts() {
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
@@ -493,7 +493,7 @@ fun seal_approve_correct_bucket_passes() {
 }
 
 #[test]
-#[expected_failure(abort_code = 8, location = compliance_vault::seal_policy)] // scope_mismatch (bucket for day D+1 != bucket for day D)
+#[expected_failure(abort_code = compliance_vault::errors::E_SCOPE_MISMATCH, location = compliance_vault::seal_policy)] // scope_mismatch (bucket for day D+1 != bucket for day D)
 fun seal_approve_wrong_day_id_aborts() {
     // id derived for epoch_day=1 (ts=86_400_000+500) but requested_ts_ms=500 (epoch_day=0) -> mismatch
     let mut sc = ts::begin(ADMIN);
@@ -519,7 +519,7 @@ fun seal_approve_wrong_day_id_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 8, location = compliance_vault::seal_policy)] // scope_mismatch (bucket for "login" != bucket for "logout")
+#[expected_failure(abort_code = compliance_vault::errors::E_SCOPE_MISMATCH, location = compliance_vault::seal_policy)] // scope_mismatch (bucket for "login" != bucket for "logout")
 fun seal_approve_wrong_type_id_aborts() {
     // id derived for type "login" but requested_event_type = "logout" -> mismatch
     let mut sc = ts::begin(ADMIN);
@@ -543,7 +543,7 @@ fun seal_approve_wrong_type_id_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 8, location = compliance_vault::seal_policy)] // scope_mismatch (ts outside engagement window)
+#[expected_failure(abort_code = compliance_vault::errors::E_SCOPE_MISMATCH, location = compliance_vault::seal_policy)] // scope_mismatch (ts outside engagement window)
 fun seal_approve_out_of_scope_ts_aborts() {
     // CORRECT bucket for (ts=1_000_001, "login") — epoch_day=0, same as ts=500.
     // ts=1_000_001 is outside scope_end=1_000_000 -> window check aborts with scope_mismatch.
@@ -565,4 +565,26 @@ fun seal_approve_out_of_scope_ts_aborts() {
         ts::return_shared(eng);
     };
     ts::end(sc);
+}
+
+// ABI lock (spec §8): the magic-abort sweep made `expected_failure` reference
+// errors::E_* constants, so renumbering errors.move would update both source and
+// test in lockstep and pass silently. These codes are ABI-stable — pin the numeric
+// values here via the public accessors so any renumber fails loudly.
+#[test]
+fun error_codes_abi_stable() {
+    use compliance_vault::errors;
+    assert!(errors::seq_gap() == 1, 0);
+    assert!(errors::seq_replay() == 2, 0);
+    assert!(errors::len_mismatch() == 3, 0);
+    assert!(errors::policy_immutable() == 4, 0);
+    assert!(errors::namespace_sealed() == 5, 0);
+    assert!(errors::engagement_expired() == 6, 0);
+    assert!(errors::engagement_revoked() == 7, 0);
+    assert!(errors::scope_mismatch() == 8, 0);
+    assert!(errors::unauthorized_writer() == 9, 0);
+    assert!(errors::invalid_merkle_proof() == 10, 0);
+    assert!(errors::parent_hash_mismatch() == 11, 0);
+    assert!(errors::unauthorized() == 12, 0);
+    assert!(errors::seq_overflow() == 13, 0);
 }
