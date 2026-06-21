@@ -9,6 +9,23 @@ const GENESIS_EVENT_HASH = '0x' + '00'.repeat(32);
 const RUN_ID = Uint8Array.from({ length: 32 }, (_, i) => (i + 1) & 0xff);
 const MOCK_BLOB_ID = Uint8Array.from({ length: 32 }, () => 0xaa);
 
+/** Deterministic synthetic event for seq `s` linked to `prevEventHash`. */
+function makeEvent(namespaceId: string, s: bigint, prevEventHash: string): ComplianceEvent {
+  return {
+    v: 1,
+    ns: namespaceId,
+    run_id: '0x' + '11'.repeat(32),
+    seq: s,
+    ts_ms: 0,
+    type: 'e2e.test',
+    agent: { model: 'e2e', version: '0', prompt_hash: '0x' + '00'.repeat(32) },
+    input_hash: '0x' + '00'.repeat(32),
+    output_hash: '0x' + '00'.repeat(32),
+    payload: { note: 'stage-b e2e' },
+    prev_event_hash: prevEventHash,
+  };
+}
+
 async function main() {
   const signer = signerFromEnv();
   const client = grpcClient();
@@ -30,20 +47,18 @@ async function main() {
   // last_batch_hash: gRPC may render vector<u8> as number[] or 0x-hex. Normalize to Uint8Array.
   const parentBatchHash = toBytes(lastHashRaw);
 
-  // synthetic single-leaf batch at seq = seqNext
-  const event: ComplianceEvent = {
-    v: 1,
-    ns: namespaceId,
-    run_id: '0x' + '11'.repeat(32),
-    seq: seqNext,
-    ts_ms: 0,
-    type: 'e2e.test',
-    agent: { model: 'e2e', version: '0', prompt_hash: '0x' + '00'.repeat(32) },
-    input_hash: '0x' + '00'.repeat(32),
-    output_hash: '0x' + '00'.repeat(32),
-    payload: { note: 'stage-b e2e' },
-    prev_event_hash: GENESIS_EVENT_HASH,
-  };
+  // synthetic single-leaf batch at seq = seqNext.
+  // The event chain is hash-linked: prev_event_hash[n] = eventHash(event[n-1]),
+  // with event[0].prev = genesis. Events aren't persisted (only batch hashes go
+  // on-chain), but every field except `seq` is deterministic, so fold the chain
+  // from 0 up to seqNext to recover the correct prev hash. Anchoring at seqNext
+  // with a fixed genesis prev (the old behavior) breaks the chain on any re-run
+  // where seq_next has advanced past 0.
+  let prevEventHash = GENESIS_EVENT_HASH;
+  for (let s = 0n; s < seqNext; s++) {
+    prevEventHash = '0x' + Buffer.from(eventHash(makeEvent(namespaceId, s, prevEventHash))).toString('hex');
+  }
+  const event = makeEvent(namespaceId, seqNext, prevEventHash);
   const eh = eventHash(event);
   const tree = buildTree([{ seq: seqNext, eventHash: eh }]);
 
