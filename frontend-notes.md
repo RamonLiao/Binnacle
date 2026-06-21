@@ -51,7 +51,7 @@
 ---
 
 ## 4. 尚未完成之 TODO
-- [ ] 將選定的 `logo_mascot_box.png` 實裝入 `apps/auditor-ui` 的導覽列 (Navbar)。
-- [ ] 將 `hero_illustration.png` 整合進前端首頁的 Hero section。
-- [ ] 在 Next.js 專案中配置全域字型與 CSS 主色變數。
+- [x] 將選定的 `logo_mascot_box.png` 實裝入 `apps/auditor-ui` 的導覽列 (Navbar)。
+- [x] 將 `hero_illustration.png` 整合進前端首頁的 Hero section。
+- [x] 在 Next.js 專案中配置全域字型與 CSS 主色變數。
 
