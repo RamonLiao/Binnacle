@@ -2,6 +2,14 @@
 
 > Architecture-level decisions and on-chain constraints. Update after each Move task.
 
+## 2026-06-21 — #14b DEPLOYED to testnet (v3)
+
+Committed the day-gate fix (`e9d55a9`) and ran `sui client upgrade` (via UpgradeCap `0xb55e33…`).
+- **v3 PackageID** = `0x45fccc90178545119c7c578998e86ffc4d1151ddc884524e6b97d39e99d15a6b` (Version 3, all 9 modules). Upgrade tx `9P7h3VKDh9vNnwotHQJLKJ4tSMk4JFHou6YtLtC6xgEH`.
+- **Move.toml gotcha:** `published-at` was stale at original v1 `0xcb5cc6`; an upgrade links against the *latest* on-chain version, so bumped it v2→v3 (`[addresses]` stays original — type identity). Set published-at to v3 now for the next upgrade.
+- **Propagation:** sdk/.env + auditor-ui/.env.local PACKAGE_ID → v3 (anchor + seal_approve target). Seal IBE encrypt-domain stays original `0xcb5cc6`. **indexer/.env left at `0xcb5cc6`** — Sui event struct types keep the ORIGINAL package address forever, so the event filter must use the original id.
+- **Verify residual:** prove-e2e.ts exercises the day-gate only with a sub-day grant; a targeted sub-day-grant decrypt-denied run would prove the new gate is live on v3. Upgrade itself confirmed (on-chain Version 3).
+
 ## 2026-06-21 — #14b day-grain edge-leak FIXED (seal_approve day-coverage gate)
 
 **Why:** the IBE bucket is day-grained (`bucket_id(ns, epoch_day = ts_ms/MS_PER_DAY, type)`), so when Seal releases a share it hands the auditor the key for the WHOLE `epoch_day`. The old `seal_approve` only checked `requested_ts_ms ∈ [scope_start, scope_end]` — a sub-day grant (e.g. 5 min) therefore over-released the entire day's bucket (~288 5-min batches). Privilege-escalation edge-leak documented as a Stage C residual.

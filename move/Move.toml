@@ -2,8 +2,10 @@
 name = "compliance_vault"
 edition = "2024.beta"
 license = "Apache-2.0"
-# Set for the testnet upgrade (2026-06-20): original published package id.
-published-at = "0xcb5cc62066b4bbc2e66961b48d5141f9cf3ec119e33a7f6d6ec235a1d413b14c"
+# published-at = LATEST on-chain version (upgrade links against the most recent
+# package). 2026-06-21: day-gate upgrade -> v3 0x45fccc90 (was v2 0xb878f5e0).
+# [addresses] stays the ORIGINAL id (type identity is fixed at first publish).
+published-at = "0x45fccc90178545119c7c578998e86ffc4d1151ddc884524e6b97d39e99d15a6b"
 
 [dependencies]
 # Sui / MoveStdlib are added implicitly (Sui 1.45+). Do not list explicitly.
