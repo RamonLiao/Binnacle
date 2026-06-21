@@ -6,22 +6,25 @@ import type { EventName, RawEvent } from "./decode.js";
 
 const CURSOR_KEY = "events_cursor";
 
+// Filter by the event struct's defining module (`<pkg>::events`), NOT the emitting
+// module: events are emitted by functions in namespace/batch/engagement but the
+// structs live in the `events` module. The Sui GraphQL `type` filter accepts
+// `package::module`. (Old `emittingModule`/top-level `type{repr}` schema retired
+// alongside the *.mystenlabs.com host; live endpoint = graphql.testnet.sui.io.)
 const QUERY = `
-query Events($module: String!, $after: String, $first: Int!) {
-  events(filter: { emittingModule: $module }, first: $first, after: $after) {
+query Events($type: String!, $after: String, $first: Int!) {
+  events(filter: { type: $type }, first: $first, after: $after) {
     pageInfo { hasNextPage endCursor }
     nodes {
-      type { repr }
       timestamp
-      contents { json }
+      contents { type { repr } json }
     }
   }
 }`;
 
 interface GqlNode {
-  type: { repr: string };
   timestamp: string | null;
-  contents: { json: Record<string, unknown> | null } | null;
+  contents: { type: { repr: string }; json: Record<string, unknown> | null } | null;
 }
 
 const KNOWN: ReadonlySet<string> = new Set<EventName>([
@@ -62,11 +65,12 @@ export async function pollOnce(): Promise<RawEvent[]> {
   while (hasNext) {
     const data = await gql<{
       events: { pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: GqlNode[] };
-    }>(QUERY, { module: moduleRef, after, first: config.pollPageSize });
+    }>(QUERY, { type: moduleRef, after, first: config.pollPageSize });
 
     for (const node of data.events.nodes) {
-      const name = eventName(node.type.repr);
-      if (!name || !node.contents?.json) continue;
+      if (!node.contents?.type || !node.contents.json) continue;
+      const name = eventName(node.contents.type.repr);
+      if (!name) continue;
       out.push({
         typeName: name,
         json: node.contents.json,
