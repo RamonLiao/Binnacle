@@ -58,10 +58,25 @@ entry fun seal_approve(
     // B3 — field-based auth: sender is the auditor's session-key address.
     assert!(ctx.sender() == engagement::auditor_addr(eng), errors::scope_mismatch());
 
-    // Time scope.
+    // Time scope — DAY-COVERAGE gate (Stage C residual: day-grain edge-leak fix).
+    // The IBE bucket is day-grained, so releasing a share for `requested_ts_ms`
+    // hands the auditor the key for the WHOLE epoch_day. A naive per-request
+    // `requested_ts in [scope_start, scope_end]` check would let a sub-day grant
+    // unlock the entire day's bucket (~288 5-min batches). Require instead that
+    // the FULL epoch_day containing requested_ts is inside the grant, so the
+    // released key's breadth never exceeds the granted scope. This subsumes the
+    // old per-request window check (day_start <= requested_ts <= day_end always).
+    //
+    // FUTURE UPGRADE PATH (deferred, documented): (1) hour-grain bucket via
+    // SEAL_BUCKET_DOMAIN ::v2 (MS_PER_HOUR) shrinks the unit from day to hour —
+    // requires re-encrypt, not retrofittable; (2) also enforce day-alignment of
+    // scope_start/scope_end at engagement::mint_engagement so a non-aligned grant
+    // is rejected at mint, not only at the gate. Both intentionally NOT done here.
+    let day_start = (requested_ts_ms / MS_PER_DAY) * MS_PER_DAY;
+    let day_end = day_start + MS_PER_DAY - 1;
     assert!(
-        requested_ts_ms >= engagement::scope_start_ms(eng)
-            && requested_ts_ms <= engagement::scope_end_ms(eng),
+        engagement::scope_start_ms(eng) <= day_start
+            && day_end <= engagement::scope_end_ms(eng),
         errors::scope_mismatch(),
     );
 

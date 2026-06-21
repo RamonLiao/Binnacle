@@ -296,14 +296,27 @@ fun merkle_seq_out_of_range_aborts() {
 // seal_approve gate (C4) — happy + abort paths
 // ---------------------------------------------------------------------------
 
+// Full day-0 grant [0 .. 86_399_999]. Day-aligned so the day-coverage gate
+// (Stage C leak fix) passes for any ts in epoch_day 0 — the honest grant shape
+// now that the released IBE key is day-grained.
 fun mint_eng(sc: &mut ts::Scenario, filter: vector<string::String>, expires_at_ms: u64) {
+    mint_eng_scoped(sc, filter, 0, 86_399_999, expires_at_ms);
+}
+
+fun mint_eng_scoped(
+    sc: &mut ts::Scenario,
+    filter: vector<string::String>,
+    scope_start_ms: u64,
+    scope_end_ms: u64,
+    expires_at_ms: u64,
+) {
     ts::next_tx(sc, ADMIN);
     let ns = ts::take_shared<AgentNamespace>(sc);
     let acap = ts::take_from_sender<AdminCap>(sc);
     let clk = clock::create_for_testing(sc.ctx());
     engagement::mint_engagement(
         &ns, &acap, AUDITOR, b"pubkey",
-        0, 1_000_000, filter, expires_at_ms,
+        scope_start_ms, scope_end_ms, filter, expires_at_ms,
         &clk, sc.ctx(),
     );
     clock::destroy_for_testing(clk);
@@ -543,15 +556,16 @@ fun seal_approve_wrong_type_id_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = compliance_vault::errors::E_SCOPE_MISMATCH, location = compliance_vault::seal_policy)] // scope_mismatch (ts outside engagement window)
+#[expected_failure(abort_code = compliance_vault::errors::E_SCOPE_MISMATCH, location = compliance_vault::seal_policy)] // scope_mismatch (requested day outside grant)
 fun seal_approve_out_of_scope_ts_aborts() {
-    // CORRECT bucket for (ts=1_000_001, "login") — epoch_day=0, same as ts=500.
-    // ts=1_000_001 is outside scope_end=1_000_000 -> window check aborts with scope_mismatch.
+    // Grant covers day 0 only ([0 .. 86_399_999]). Request a CORRECT bucket for
+    // day 1 (ts=86_400_500): id-binding passes, but the day-coverage gate sees
+    // day 1 = [86_400_000 .. 172_799_999] is NOT inside the grant -> abort.
     let mut sc = ts::begin(ADMIN);
     bootstrap(&mut sc);
-    mint_eng(&mut sc, vector[string::utf8(b"login")], 1_000_000);
+    mint_eng(&mut sc, vector[string::utf8(b"login")], 200_000_000);
     let nid = ns_id(&mut sc);
-    let ts_out: u64 = 1_000_001; // outside scope_end=1_000_000 ; still epoch_day=0
+    let ts_out: u64 = 86_400_500; // epoch_day=1, outside the day-0 grant
     let id_bytes = seal_policy::bucket_id_for_test(nid, ts_out, string::utf8(b"login"));
 
     ts::next_tx(&mut sc, AUDITOR);
@@ -560,6 +574,34 @@ fun seal_approve_out_of_scope_ts_aborts() {
         let clk = clock::create_for_testing(sc.ctx());
         seal_policy::seal_approve_for_test(
             id_bytes, &eng, string::utf8(b"login"), ts_out, &clk, sc.ctx(),
+        );
+        clock::destroy_for_testing(clk);
+        ts::return_shared(eng);
+    };
+    ts::end(sc);
+}
+
+#[test]
+#[expected_failure(abort_code = compliance_vault::errors::E_SCOPE_MISMATCH, location = compliance_vault::seal_policy)] // scope_mismatch (sub-day grant cannot unlock day bucket)
+fun seal_approve_subday_grant_denied() {
+    // REGRESSION (Stage C day-grain edge-leak fix): a sub-day grant
+    // [0 .. 1_000_000] (~16.6 min) must NOT release the day-0 bucket key, which
+    // would decrypt the WHOLE day (~288 batches). Everything else is correct
+    // (id-binding, sender, type, ts in [start,end]) — only the day-coverage gate
+    // denies, proving the released key's breadth can never exceed the grant.
+    let mut sc = ts::begin(ADMIN);
+    bootstrap(&mut sc);
+    mint_eng_scoped(&mut sc, vector[string::utf8(b"login")], 0, 1_000_000, 200_000_000);
+    let nid = ns_id(&mut sc);
+    let id_bytes = seal_policy::bucket_id_for_test(nid, 500, string::utf8(b"login"));
+
+    ts::next_tx(&mut sc, AUDITOR);
+    {
+        let eng = ts::take_shared<EngagementObject>(&sc);
+        let mut clk = clock::create_for_testing(sc.ctx());
+        clock::set_for_testing(&mut clk, 500);
+        seal_policy::seal_approve_for_test(
+            id_bytes, &eng, string::utf8(b"login"), 500, &clk, sc.ctx(),
         );
         clock::destroy_for_testing(clk);
         ts::return_shared(eng);

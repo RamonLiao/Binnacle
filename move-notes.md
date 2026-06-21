@@ -2,6 +2,30 @@
 
 > Architecture-level decisions and on-chain constraints. Update after each Move task.
 
+## 2026-06-21 — #14b day-grain edge-leak FIXED (seal_approve day-coverage gate)
+
+**Why:** the IBE bucket is day-grained (`bucket_id(ns, epoch_day = ts_ms/MS_PER_DAY, type)`), so when Seal releases a share it hands the auditor the key for the WHOLE `epoch_day`. The old `seal_approve` only checked `requested_ts_ms ∈ [scope_start, scope_end]` — a sub-day grant (e.g. 5 min) therefore over-released the entire day's bucket (~288 5-min batches). Privilege-escalation edge-leak documented as a Stage C residual.
+
+**Fix (Option 1 — chosen):** REPLACED the per-request window assert with a day-coverage gate in `seal_policy.move::seal_approve`:
+```
+let day_start = (requested_ts_ms / MS_PER_DAY) * MS_PER_DAY;
+let day_end = day_start + MS_PER_DAY - 1;
+assert!(scope_start_ms(eng) <= day_start && day_end <= scope_end_ms(eng), scope_mismatch());
+```
+Now the FULL day containing `requested_ts_ms` must be inside the grant → released key breadth ⊆ granted scope, provably. Subsumes the old check (`day_start <= requested_ts <= day_end` always). `requested_ts_ms` is rebound into `id` at the top assert (line 53), so coverage is always evaluated against the exact day the key unlocks — no id/ts day divergence.
+
+**Semantic change:** grants are now effectively day-aligned — only days FULLY inside `[scope_start, scope_end]` decrypt; a partial first/last day releases nothing. Acceptable for compliance-audit grants. (To restore sub-day granularity → Option 2 below.)
+
+**FUTURE UPGRADE PATH (deferred, in code comment):** (1) hour-grain bucket via `SEAL_BUCKET_DOMAIN ::v2` (MS_PER_HOUR) — shrinks the unit day→hour but requires re-encrypt (NOT retrofittable to existing blobs); (2) also enforce `scope_start/end` day-alignment at `engagement::mint_engagement` so a misaligned grant is rejected at mint, not only at the gate. `mint_engagement` currently does NO scope validation (not even `start <= end`) — the gate defends regardless (misaligned/reversed → denies via `<=`), so it's intentional and the gate relies on no mint-time invariant.
+
+**Overflow (red-team priority):** `day_end = day_start + MS_PER_DAY - 1` overflows u64 only for `requested_ts_ms` in the final ~14.4h of the u64 epoch (~year 584M). Move `+` is CHECKED → hard arithmetic abort, NOT a wrap → fail-closed (abort = deny). No `requested_ts_ms` wraps `day_end` below `scope_end` to bypass. `epoch_day` (division) never overflows, so id-binding is unaffected.
+
+**Review chain:** security-guard PASS (fail-closed, single normal-return path after all 5 asserts, invariants preserved, overflow=deny) + sui-red-team **0 exploited / 6 defended** (overflow, sub-day denial, multi-day boundaries D1..D3, id-day vs ts-day mismatch).
+
+**Tests:** `sui move test` **34/34**. Added `seal_approve_subday_grant_denied` regression + repurposed `seal_approve_out_of_scope_ts_aborts` (now day-1 request vs day-0 grant) + test helper `mint_eng` now day-aligned `[0, 86_399_999]` w/ new `mint_eng_scoped`. Red-team kept `tests/red_team_seal_daygate.move` (6 vectors incl. `#[expected_failure(arithmetic_error)]` overflow).
+
+**⚠️ NOT DEPLOYED:** Move-only change. Testnet v2 `0xb878f5e0…` still runs the OLD gate until `sui client upgrade` via UpgradeCap `0xb55e33…`. Compatible upgrade (only private `seal_approve`/`bucket_id` bodies change; no struct/signature change) — same upgrade flow as 2026-06-20. SDK conformance (`bucket.ts`) unaffected — bucket encoding unchanged, only the gate logic changed.
+
 ## 2026-06-20 — Testnet package UPGRADE (Stage C unblock) + Stage C e2e CLOSED
 
 **Why:** `prove-e2e.ts` id-binding self-check aborted `seal_approve` with E_SCOPE_MISMATCH(8) for ALL inputs. Root cause: the deployed package `0xcb5cc6…` (publish 2026-05-31) **predated** the Stage C per-(day,type) bucket re-bind (commit `aaf749f`). On-chain `seal_approve` still ran v1 `id == id_to_bytes(ns)` (namespace-wide), but the SDK encrypts under `id = bucketId(hash)` → never equal. **"Merged to master" ≠ redeployed.** The on-chain self-check (red-team V3) is exactly what caught the stale policy before any blob was anchored.
