@@ -17,3 +17,7 @@ node_modules/
 
 # Move build artifacts
 move/build/
+
+# don't push plan.md
+plan.md
+
