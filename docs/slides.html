@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Binnacle — Pitch Deck</title>
+<style>
+  :root{
+    --bg:#0A1128; --card:#111C38; --gold:#D4AF37; --fg:#F8FAFC;
+    --muted:#94A3B8; --secondary:#1B2644; --border:#1E293B; --danger:#EF4444;
+    --green:#34D399;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{
+    background:var(--bg);color:var(--fg);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  #deck{
+    display:flex;height:100vh;width:100vw;
+    overflow-x:auto;overflow-y:hidden;
+    scroll-snap-type:x mandatory;scroll-behavior:smooth;
+    scrollbar-width:none;
+  }
+  #deck::-webkit-scrollbar{display:none}
+  .slide{
+    flex:0 0 100vw;height:100vh;scroll-snap-align:center;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(2rem,7vw,7rem);position:relative;
+  }
+  .slide::before{
+    content:attr(data-n);position:absolute;top:2.2rem;right:3rem;
+    font-size:.8rem;letter-spacing:.25em;color:var(--muted);
+  }
+  .kicker{
+    color:var(--gold);font-weight:600;letter-spacing:.28em;
+    text-transform:uppercase;font-size:.8rem;margin-bottom:1.4rem;
+  }
+  h1{font-size:clamp(2.6rem,7vw,5.5rem);line-height:1.02;font-weight:800;letter-spacing:-.02em}
+  h2{font-size:clamp(2rem,4.5vw,3.4rem);line-height:1.08;font-weight:700;letter-spacing:-.015em;margin-bottom:2rem}
+  .lead{font-size:clamp(1.15rem,2vw,1.6rem);color:#CBD5E1;max-width:60ch;line-height:1.55;margin-top:1.6rem}
+  .gold{color:var(--gold)}
+  .grid{display:grid;gap:1.4rem;margin-top:1rem}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:820px){.g3{grid-template-columns:1fr}}
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:1rem;
+    padding:1.8rem;
+  }
+  .card h3{color:var(--gold);font-size:1.25rem;margin-bottom:.6rem}
+  .card p{color:#CBD5E1;font-size:1.02rem;line-height:1.5}
+  ul.steps{list-style:none;margin-top:1.4rem;display:flex;flex-direction:column;gap:1rem}
+  ul.steps li{display:flex;align-items:center;gap:1rem;font-size:clamp(1.05rem,1.8vw,1.45rem)}
+  ul.steps .dot{flex:0 0 auto;width:2.4rem;height:2.4rem;border-radius:50%;
+    background:var(--secondary);border:1px solid var(--gold);color:var(--gold);
+    display:flex;align-items:center;justify-content:center;font-weight:700}
+  .flow{display:flex;align-items:center;flex-wrap:wrap;gap:.7rem;margin-top:2rem;font-size:clamp(.95rem,1.6vw,1.3rem)}
+  .flow .node{background:var(--card);border:1px solid var(--border);border-radius:.7rem;padding:.7rem 1.1rem}
+  .flow .arr{color:var(--gold);font-weight:700}
+  .vision li{margin-bottom:1.3rem}
+  .vision b{color:var(--gold)}
+  .brandrow{display:flex;align-items:center;gap:1.2rem;margin-bottom:2rem}
+  .brandrow img{width:72px;height:72px;border-radius:1rem}
+  .tag{display:inline-block;background:var(--secondary);color:var(--muted);
+    border:1px solid var(--border);border-radius:999px;padding:.35rem .9rem;
+    font-size:.8rem;letter-spacing:.1em;margin-top:2.4rem}
+  .closing h1{font-size:clamp(3rem,9vw,7rem)}
+  /* nav */
+  .nav{position:fixed;bottom:1.6rem;left:50%;transform:translateX(-50%);
+    display:flex;align-items:center;gap:1.2rem;z-index:10}
+  .dots{display:flex;gap:.55rem}
+  .dots button{width:9px;height:9px;border-radius:50%;border:none;cursor:pointer;
+    background:#334155;padding:0;transition:.2s}
+  .dots button.active{background:var(--gold);width:24px;border-radius:999px}
+  .arrow{background:var(--card);border:1px solid var(--border);color:var(--fg);
+    width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:1.2rem;
+    display:flex;align-items:center;justify-content:center;transition:.2s}
+  .arrow:hover{border-color:var(--gold);color:var(--gold)}
+  .hint{position:fixed;bottom:1.9rem;right:1.6rem;color:var(--muted);font-size:.75rem;z-index:10}
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- 1 — Title -->
+  <section class="slide closing" data-n="01">
+    <div class="brandrow">
+      <img src="../apps/auditor-ui/public/logo_mascot_box.png" alt="Binnacle mascot" onerror="this.style.display='none'"/>
+      <span class="kicker" style="margin:0">Sui Overflow · Track 3 · Walrus</span>
+    </div>
+    <h1>Binnacle</h1>
+    <p class="lead">A compliance vault for AI agents — built on <span class="gold">Sui</span>, <span class="gold">Walrus</span> and <span class="gold">Seal</span>.</p>
+    <span class="tag">Every autonomous system needs a black box.</span>
+  </section>
+
+  <!-- 2 — Problem -->
+  <section class="slide" data-n="02">
+    <div class="kicker">The Problem</div>
+    <h2>AI agents act. Nobody can prove what they did.</h2>
+    <p class="lead">Agents call tools, move funds and sign things. But when an auditor or regulator asks <span class="gold">"prove what your agent did — and prove nobody tampered with the log"</span>, there's no good answer today.</p>
+    <p class="lead">The log sits in a company database that the company itself can edit.</p>
+  </section>
+
+  <!-- 3 — Solution -->
+  <section class="slide" data-n="03">
+    <div class="kicker">The Solution</div>
+    <h2>A tamper-evident black box for every agent</h2>
+    <div class="grid g3">
+      <div class="card"><h3>Integrity</h3><p>Every event is Merkle-batched and anchored on Sui. The log cannot be rewritten or reordered.</p></div>
+      <div class="card"><h3>Confidentiality</h3><p>Payloads are encrypted with Seal threshold encryption and stored on Walrus. Raw data never leaks.</p></div>
+      <div class="card"><h3>Scoped access</h3><p>An auditor decrypts only the exact days and event types they've been granted. Nothing more.</p></div>
+    </div>
+  </section>
+
+  <!-- 4 — Architecture -->
+  <section class="slide" data-n="04">
+    <div class="kicker">How it works</div>
+    <h2>One pipeline, end to end</h2>
+    <div class="flow">
+      <span class="node">Agent</span><span class="arr">→</span>
+      <span class="node">Off-chain prover</span><span class="arr">→</span>
+      <span class="node">Seal-encrypt → Walrus</span><span class="arr">→</span>
+      <span class="node">Anchor batch hash on Sui</span>
+    </div>
+    <p class="lead">The auditor signs in with <span class="gold">Google (Enoki zkLogin)</span> and reads through our indexer. <strong>No seed phrases, no gas for the auditor.</strong></p>
+  </section>
+
+  <!-- 5 — Demo -->
+  <section class="slide" data-n="05">
+    <div class="kicker">Live Demo · 3 min</div>
+    <h2>The auditor's journey</h2>
+    <ul class="steps">
+      <li><span class="dot">1</span> Sign in with Google — a real Sui address, no wallet</li>
+      <li><span class="dot">2</span> Open an engagement — an on-chain grant (scope · types · window)</li>
+      <li><span class="dot">3</span> Verify inclusion — recompute the Merkle proof against the anchored root</li>
+      <li><span class="dot">4</span> Decrypt — Seal releases a key share only if the chain agrees the grant covers this day &amp; type</li>
+      <li><span class="dot">5</span> File attestation — the auditor's sign-off is anchored on-chain too</li>
+    </ul>
+  </section>
+
+  <!-- 6 — Future Vision -->
+  <section class="slide" data-n="06">
+    <div class="kicker">Future Vision</div>
+    <h2>From audit to trust</h2>
+    <ul class="lead vision" style="list-style:none">
+      <li><b>Real-time compliance</b> — second-level batch flushing, so audit is continuous, not after-the-fact.</li>
+      <li><b>Programmable policies</b> — express regulation as Move policies: "EU auditors, financial events, this quarter only", enforced on-chain.</li>
+      <li><b>From audit to insurance</b> — once an agent's behaviour is provable, it becomes underwritable.</li>
+      <li><b>A general primitive</b> — any agent, any framework, can anchor to Binnacle.</li>
+    </ul>
+  </section>
+
+  <!-- 7 — Closing -->
+  <section class="slide closing" data-n="07">
+    <div class="kicker">Thank you</div>
+    <h1>Binnacle</h1>
+    <p class="lead">Because every autonomous system needs a black box.</p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button class="arrow" id="prev" aria-label="Previous">‹</button>
+  <div class="dots" id="dots"></div>
+  <button class="arrow" id="next" aria-label="Next">›</button>
+</div>
+<div class="hint">← / → · swipe · click dots</div>
+
+<script>
+  const deck=document.getElementById('deck');
+  const slides=[...deck.querySelectorAll('.slide')];
+  const dotsBox=document.getElementById('dots');
+  let cur=0;
+  slides.forEach((_,i)=>{
+    const b=document.createElement('button');
+    b.onclick=()=>go(i);
+    dotsBox.appendChild(b);
+  });
+  const dots=[...dotsBox.children];
+  function go(i){cur=Math.max(0,Math.min(slides.length-1,i));
+    deck.scrollTo({left:cur*window.innerWidth,behavior:'smooth'});update();}
+  function update(){dots.forEach((d,i)=>d.classList.toggle('active',i===cur));}
+  document.getElementById('next').onclick=()=>go(cur+1);
+  document.getElementById('prev').onclick=()=>go(cur-1);
+  addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ')go(cur+1);
+    if(e.key==='ArrowLeft'||e.key==='PageUp')go(cur-1);
+    if(e.key==='Home')go(0); if(e.key==='End')go(slides.length-1);
+  });
+  // keep dots in sync when scrolled/swiped manually
+  let t; deck.addEventListener('scroll',()=>{clearTimeout(t);t=setTimeout(()=>{
+    cur=Math.round(deck.scrollLeft/window.innerWidth);update();},80);});
+  addEventListener('resize',()=>deck.scrollTo({left:cur*window.innerWidth}));
+  update();
+</script>
+</body>
+</html>
